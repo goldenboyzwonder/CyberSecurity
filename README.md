@@ -2,11 +2,58 @@
 
 The files in this repository were used to configure the network depicted below.
 
-![TODO: Update the path with the name of your diagram](Images/diagram_filename.png)
+![TODO: Update the path with the name of your diagram](images/cloud_security.png)
 
 These files have been tested and used to generate a live ELK deployment on Azure. They can be used to either recreate the entire deployment pictured above. Alternatively, select portions of the _____ file may be used to install only certain pieces of it, such as Filebeat.
+```yaml
+  ---
+- name: Config ELK VM with Docker
+  hosts: elk
+  remote_user: azdmin
+  become: true
+  tasks:
 
-  - _TODO: Enter the playbook file._
+    - name: Install Docker.io
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        name: docker.io
+        state: latest
+
+    - name: Install python3-pip
+      apt:
+        force_apt_get: yes
+        name: python3-pip
+        state: latest
+
+    - name: Install Docker module
+      pip:
+        name: docker
+        state: latest
+
+    - name: Use more memory
+      sysctl:
+        name: vm.max_map_count
+        value: "262144"
+        state: present
+        reload: yes
+
+    - name: download and launch a docker elk container
+      docker_container:
+        name: elk
+        image: sebp/elk:761
+        state: started
+        restart_policy: always
+        published_ports:
+          - 5601:5601
+          - 9200:9200
+          - 5044:5044
+
+    - name: Enable service docker on boot
+      systemd:
+        name: docker
+        enabled: true
+```
 
 This document contains the following details:
 - Description of the Topologu
@@ -33,28 +80,32 @@ _Note: Use the [Markdown Table Generator](http://www.tablesgenerator.com/markdow
 
 | Name     | Function | IP Address | Operating System |
 |----------|----------|------------|------------------|
-| Jump Box | Gateway  | 10.0.0.1   | Linux            |
-| TODO     |          |            |                  |
-| TODO     |          |            |                  |
-| TODO     |          |            |                  |
+| Jump Box | Gateway  | 10.0.0.4   | Linux            |
+| Web-1    |          | 10.0.0.5   | Linux            |
+| Web-2    |          | 10.0.0.6   | Linux            |
+| ELK-VM   |          | 10.1.0.4   | Linux            |
 
 ### Access Policies
 
 The machines on the internal network are not exposed to the public Internet. 
 
-Only the _____ machine can accept connections from the Internet. Access to this machine is only allowed from the following IP addresses:
-- _TODO: Add whitelisted IP addresses_
+Only the JumpBox VM machine can accept connections from the Internet. Access to this machine is only allowed from the following IP addresses:
+- _68.203.138.53_
+- _10.0.0.5_
+- _10.0.0.6_
 
-Machines within the network can only be accessed by _____.
+Machines within the network can only be accessed by **JumpBox**.
 - _TODO: Which machine did you allow to access your ELK VM? What was its IP address?_
+  - **Red-Team-Jump-Box-Provisioner and it's IP address is : 168.61.155.242**
 
 A summary of the access policies in place can be found in the table below.
 
-| Name     | Publicly Accessible | Allowed IP Addresses |
-|----------|---------------------|----------------------|
-| Jump Box | Yes/No              | 10.0.0.1 10.0.0.2    |
-|          |                     |                      |
-|          |                     |                      |
+| Name     | Publicly Accessible | Allowed IP Addresses   |
+|----------|---------------------|------------------------|
+| Jump Box | Yes                 | 10.0.0.4 10.0.0.2      |
+| Web-1    | No                  | 10.0.0.4 68.203.138.53 |
+| Web-2    | No                  | 10.0.0.4 68.203.138.53 |
+| ELK-VM   | No                  | 10.0.0.4 68.203.138.53 |
 
 ### Elk Configuration
 
@@ -68,14 +119,15 @@ The playbook implements the following tasks:
 
 The following screenshot displays the result of running `docker ps` after successfully configuring the ELK instance.
 
-![TODO: Update the path with the name of your screenshot of docker ps output](Images/docker_ps_output.png)
+![TODO: Update the path with the name of your screenshot of docker ps output](images/ELKplaybook.png)
 
 ### Target Machines & Beats
 This ELK server is configured to monitor the following machines:
-- _TODO: List the IP addresses of the machines you are monitoring_
+- **10.0.0.4**
 
 We have installed the following Beats on these machines:
-- _TODO: Specify which Beats you successfully installed_
+- **FileBeats**
+- **MetricBeats**
 
 These Beats allow us to collect the following information from each machine:
 - _TODO: In 1-2 sentences, explain what kind of data each beat collects, and provide 1 example of what you expect to see. E.g., `Winlogbeat` collects Windows logs, which we use to track user logon events, etc._
@@ -90,7 +142,10 @@ SSH into the control node and follow the steps below:
 
 _TODO: Answer the following questions to fill in the blanks:_
 - _Which file is the playbook? Where do you copy it?_
+  - **install-elk.yml to /etc/ansible**
 - _Which file do you update to make Ansible run the playbook on a specific machine? How do I specify which machine to install the ELK server on versus which to install Filebeat on?_
-- _Which URL do you navigate to in order to check that the ELK server is running?
-
+  - **The Host file and use unique webserver groups**
+- _Which URL do you navigate to in order to check that the ELK server is running?_
+  - **http://52.233.81.187:5601/app/kibana#/home**
+  
 _As a **Bonus**, provide the specific commands the user will need to run to download the playbook, update the files, etc._
